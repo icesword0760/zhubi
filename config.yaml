@@ -1,0 +1,96 @@
+annotation:
+  bbox_color: '#00ff00'
+  bbox_thickness: 2
+  label_font_size: 14
+  max_bbox_size: 5000
+  min_bbox_size: 10
+  selected_bbox_color: '#ff0000'
+  shortcuts:
+    delete_bbox: d
+    next_image: n
+    prev_image: p
+    redo: ctrl+y
+    save: s
+    undo: ctrl+z
+augmentation:
+  brightness_range:
+  - 0.8
+  - 1.2
+  contrast_range:
+  - 0.8
+  - 1.2
+  enabled: true
+  horizontal_flip: true
+  noise_probability: 0.1
+  rotation_range: 15
+  scale_range:
+  - 0.8
+  - 1.2
+  vertical_flip: false
+paths:
+  # 上游 OmniParser 仓库：提供 weights/（icon_detect、icon_caption_florence）和 util/。
+  # 也可以用环境变量 OMNIPARSER_ROOT 覆盖。
+  omniparser_root: ../OmniParser
+data:
+  allowed_extensions:
+  - jpg
+  - jpeg
+  - png
+  - bmp
+  - webp
+  exports_dir: data/exports
+  logs_dir: data/logs
+  max_upload_size: 100
+  models_dir: data/models
+  projects_dir: data/projects
+export:
+  florence2:
+    coord_bins: 1000
+    normalize_coords: true
+  formats:
+  - coco
+  - yolo
+  - florence2
+  - voc
+  - csv
+  include_unlabeled: false
+  train_val_test_split:
+  - 0.7
+  - 0.2
+  - 0.1
+  yolo:
+    version: v8
+server:
+  debug: true
+  host: 0.0.0.0
+  port: 8003
+  secret_key: zhubi-dev-secret-change-in-production
+training:
+  base_model_path: weights/icon_caption_florence   # 相对 omniparser_root
+  default_batch_size: 12
+  default_epochs: 15
+  default_lr: 1.0e-06
+  default_warmup_steps: 0
+  device: auto
+  eval_steps: 500
+  gradient_accumulation_steps: 4
+  logging_steps: 10
+  lora_alpha: 32
+  lora_dropout: 0.1
+  lora_r: 16
+  lora_target_modules:
+  - q_proj
+  - v_proj
+  max_grad_norm: 1.0
+  processor_path: weights/icon_caption_florence
+  save_steps: 500
+  save_total_limit: 3
+  use_lora: true
+  yolo_model_path: weights/icon_detect/model.pt
+ui:
+  auto_save: true
+  auto_save_interval: 30
+  items_per_page: 20
+  show_grid: true
+  theme: light
+  thumbnail_size: 150

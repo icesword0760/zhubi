@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OmniParser 模型对比 - 朱笔 Zhubi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .omni-container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .upload-zone {
+            border: 3px dashed #d1d5db;
+            border-radius: 0.75rem;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+
+        .upload-zone:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .upload-zone.has-image {
+            border-style: solid;
+            border-color: #3b82f6;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .params-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .params-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+        }
+
+        .param-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .param-item label {
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 0.875rem;
+        }
+
+        .param-item input[type="range"] {
+            width: 100%;
+        }
+
+        .param-value {
+            color: #3b82f6;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        .models-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .models-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .model-selector {
+            padding: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #f9fafb;
+        }
+
+        .model-selector h4 {
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .results-section {
+            display: none;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .result-panel {
+            background: white;
+            border-radius: 0.75rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .result-header {
+            padding: 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            font-size: 1.125rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-header.model-b {
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        }
+
+        .result-content {
+            padding: 1.5rem;
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .parsed-elements {
+            background: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            max-height: 400px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.875rem;
+            line-height: 1.6;
+            color: #374151;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+            min-width: 400px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .progress-bar-container {
+            width: 100%;
+            background: #e5e7eb;
+            height: 8px;
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 1rem 0;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            width: 0%;
+            transition: width 0.3s;
+        }
+
+        .progress-text {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.5rem;
+        }
+
+        @media (max-width: 1024px) {
+            .models-grid, .results-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <a href="index.html">
+                    <h1>朱笔 Zhubi</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html">项目管理</a>
+                <a href="annotate_enhanced.html">图片标注</a>
+                <a href="export.html">数据导出</a>
+                <a href="train.html">模型训练</a>
+                <a href="compare_omniparser.html" class="active">OmniParser对比</a>
+            </nav>
+        </header>
+
+        <!-- 面包屑导航 -->
+        <nav class="breadcrumb">
+            <div class="breadcrumb-item">
+                <a href="index.html">🏠 首页</a>
+            </div>
+            <span class="breadcrumb-separator">/</span>
+            <div class="breadcrumb-item active">
+                <span>🔬 OmniParser 模型对比</span>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="omni-container">
+                <!-- 页面标题 -->
+                <div class="page-header">
+                    <h2>🔬 OmniParser 模型对比验证</h2>
+                    <p>使用 OmniParser v2 对比基础模型与微调模型的屏幕解析效果</p>
+                </div>
+
+                <!-- 上传图片 -->
+                <div class="upload-section">
+                    <h3 style="margin: 0 0 1.5rem 0;">📤 上传测试图片</h3>
+                    <div class="upload-zone" id="uploadZone" onclick="document.getElementById('imageInput').click()">
+                        <input type="file" id="imageInput" accept="image/*" style="display:none" onchange="handleImageUpload(event)">
+                        <div id="uploadPrompt">
+                            <p style="font-size: 3rem; margin: 0;">📸</p>
+                            <p style="margin: 1rem 0 0.5rem; font-size: 1.125rem; font-weight: 600; color: #1f2937;">
+                                点击或拖拽上传屏幕截图
+                            </p>
+                            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
+                                支持 JPG、PNG、WEBP 格式
+                            </p>
+                        </div>
+                        <div id="imagePreview" style="display:none;">
+                            <img id="previewImg" class="preview-image">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- OmniParser 参数设置 -->
+                <div class="params-section">
+                    <h3 style="margin: 0 0 1.5rem 0;">⚙️ OmniParser 参数设置</h3>
+                    <div class="params-grid">
+                        <div class="param-item">
+                            <label for="boxThreshold">Box Threshold <span class="param-value" id="boxValue">0.05</span></label>
+                            <input type="range" id="boxThreshold" min="0.01" max="1.0" step="0.01" value="0.05" oninput="updateParamValue('box', this.value)">
+                            <small style="color: #6b7280;">检测框置信度阈值（越小检测越多）</small>
+                        </div>
+                        <div class="param-item">
+                            <label for="iouThreshold">IOU Threshold <span class="param-value" id="iouValue">0.1</span></label>
+                            <input type="range" id="iouThreshold" min="0.01" max="1.0" step="0.01" value="0.1" oninput="updateParamValue('iou', this.value)">
+                            <small style="color: #6b7280;">重叠框过滤阈值（越小过滤越严格）</small>
+                        </div>
+                        <div class="param-item">
+                            <label for="imgsz">Icon Detect Image Size <span class="param-value" id="imgszValue">1920</span></label>
+                            <input type="range" id="imgsz" min="640" max="1920" step="32" value="1920" oninput="updateParamValue('imgsz', this.value)">
+                            <small style="color: #6b7280;">图标检测处理尺寸（越大越精确但越慢）⚡ 推荐1920</small>
+                        </div>
+                        <div class="param-item">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer;">
+                                <input type="checkbox" id="usePaddleOCR" style="width: auto;">
+                                <span>使用 PaddleOCR</span>
+                            </label>
+                            <small style="color: #6b7280;">启用文字识别（推荐开启）</small>
+                        </div>
+                        <div class="param-item">
+                            <label for="temperature">Temperature <span class="param-value" id="temperatureValue">0.7</span></label>
+                            <input type="range" id="temperature" min="0.01" max="2.0" step="0.01" value="0.7" oninput="updateParamValue('temperature', this.value)">
+                            <small style="color: #6b7280;">生成温度（越高越随机，推荐0.7）</small>
+                        </div>
+                        <div class="param-item">
+                            <label for="repetitionPenalty">Repetition Penalty <span class="param-value" id="repetitionPenaltyValue">1.5</span></label>
+                            <input type="range" id="repetitionPenalty" min="1.0" max="3.0" step="0.1" value="1.5" oninput="updateParamValue('repetitionPenalty', this.value)">
+                            <small style="color: #6b7280;">重复惩罚（避免重复输出，推荐1.5）</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型选择 -->
+                <div class="models-section" id="modelsSection" style="display:none;">
+                    <h3 style="margin: 0 0 1.5rem 0;">🎯 选择对比模型</h3>
+                    <p style="margin: 0 0 1.5rem 0; color: #6b7280; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">
+                        💡 <strong>提示：</strong>OmniParser 使用两个模型协同工作 - YOLO负责检测图标位置，Florence-2负责识别图标含义
+                    </p>
+                    
+                    <div class="models-grid">
+                        <div class="model-selector">
+                            <h4>
+                                <span style="font-size: 1.5rem;">📦</span>
+                                <span>基础模型组（训练前）</span>
+                            </h4>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">
+                                    🎯 YOLO 检测模型
+                                </label>
+                                <select id="baseYoloSelect" class="form-control" style="width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid #d1d5db;">
+                                    <option value="">-- 选择YOLO模型 --</option>
+                                </select>
+                                <small style="color: #6b7280; margin-top: 0.25rem; display: block;">负责检测图标位置</small>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151;">
+                                    🖼️ Florence-2 识别模型
+                                </label>
+                                <select id="baseFlorence2Select" class="form-control" style="width: 100%; padding: 0.75rem; border-radius: 0.375rem; border: 1px solid #d1d5db;">
+                                    <option value="">-- 选择Florence-2模型 --</option>
+                                </select>
+                                <small style="color: #6b7280; margin-top: 0.25rem; display: block;">负责识别图标含义</small>
+                            </div>
+                        </div>
+
+                        <div class="model-selector">
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                                <h4 style="margin: 0;">
+                                    <span style="font-size: 1.5rem;">✨</span>
+                                    <span>对比模型组（可多选）</span>
+                                </h4>
+                                <button onclick="addComparisonModel()" class="btn btn-sm" style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 0.375rem; border: none; cursor: pointer; font-size: 0.875rem;">
+                                    ➕ 添加对比模型
+                                </button>
+                            </div>
+                            
+                            <div id="comparisonModelsContainer">
+                                <!-- 对比模型槽位将动态添加到这里 -->
+                            </div>
+                            
+                            <div style="margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 0.375rem; border-left: 4px solid #f59e0b;">
+                                <p style="margin: 0; font-size: 0.875rem; color: #92400e;">
+                                    💡 <strong>提示：</strong>可以添加多个对比模型，系统会自动与基础模型进行对比，并展示所有结果
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 进度条区域（初始隐藏） -->
+                    <div id="progressSection" style="display: none; margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #1e40af;">处理进度</span>
+                            <span id="progressPercent" style="font-weight: 600; color: #3b82f6;">0%</span>
+                        </div>
+                        <div style="background: #dbeafe; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div id="progressBar" style="background: linear-gradient(90deg, #3b82f6, #06b6d4); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                        <p id="progressText" style="margin: 0.5rem 0 0; font-size: 0.875rem; color: #1e40af;">
+                            准备中...
+                        </p>
+                    </div>
+
+                    <button id="startComparisonBtn" class="btn btn-primary" onclick="startComparison()" 
+                            style="width: 100%; padding: 1rem; font-size: 1.125rem; margin-top: 1.5rem;">
+                        <span style="font-size: 1.25rem;">🚀</span> 开始 OmniParser 对比
+                    </button>
+
+                    <!-- 对比日志面板（常态化显示） -->
+                    <div id="comparisonLogSection" style="margin-top: 1.5rem; background: #1f2937; border-radius: 0.5rem; overflow: hidden;">
+                        <div style="padding: 0.75rem 1rem; background: #111827; border-bottom: 1px solid #374151; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-weight: 600; color: #f3f4f6;">📋 对比日志</span>
+                                <span id="logCount" style="font-size: 0.75rem; color: #9ca3af; background: #374151; padding: 0.125rem 0.5rem; border-radius: 0.25rem;">0</span>
+                            </div>
+                            <button onclick="clearComparisonLog()" style="background: #374151; border: none; color: #9ca3af; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem;">
+                                清空
+                            </button>
+                        </div>
+                        <div id="comparisonLog" style="padding: 1rem; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.6; color: #f3f4f6;">
+                            <div style="color: #9ca3af;">等待开始对比...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 对比结果 -->
+                <div class="results-section" id="resultsSection">
+                    <h3 style="margin: 0 0 1.5rem 0;">📊 对比结果</h3>
+                    <div class="results-grid">
+                        <!-- 模型 A 结果 -->
+                        <div class="result-panel">
+                            <div class="result-header">
+                                <span style="font-size: 1.25rem;">📦</span>
+                                <span>基础模型结果</span>
+                            </div>
+                            <div class="result-content">
+                                <img id="resultImageA" class="result-image" alt="基础模型结果">
+                                <h4 style="margin: 0 0 0.75rem 0;">解析的屏幕元素：</h4>
+                                <div id="parsedElementsA" class="parsed-elements"></div>
+                            </div>
+                        </div>
+
+                        <!-- 模型 B 结果 -->
+                        <div class="result-panel">
+                            <div class="result-header model-b">
+                                <span style="font-size: 1.25rem;">✨</span>
+                                <span>微调模型结果</span>
+                            </div>
+                            <div class="result-content">
+                                <img id="resultImageB" class="result-image" alt="微调模型结果">
+                                <h4 style="margin: 0 0 0.75rem 0;">解析的屏幕元素：</h4>
+                                <div id="parsedElementsB" class="parsed-elements"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 加载中遮罩 -->
+    <div id="loadingOverlay" class="loading-overlay" style="display:none;">
+        <div class="loading-content">
+            <div class="spinner"></div>
+            <p style="margin: 0; font-size: 1.125rem; font-weight: 600; color: #1f2937;">
+                OmniParser 正在处理...
+            </p>
+            <p style="margin: 0.5rem 0 0; color: #6b7280; font-size: 0.875rem;">
+                这可能需要一些时间，请耐心等待
+            </p>
+            <div class="progress-bar-container">
+                <div class="progress-bar" id="progressBar"></div>
+            </div>
+            <p class="progress-text" id="progressText">准备中...</p>
+        </div>
+    </div>
+
+    <script src="js/compare_omniparser.js"></script>
+</body>
+</html>
+

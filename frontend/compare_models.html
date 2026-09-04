@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型对比验证 - 朱笔 Zhubi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .compare-container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .upload-area {
+            border: 2px dashed #cbd5e1;
+            border-radius: 0.5rem;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f8fafc;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .upload-area.dragover {
+            border-color: #3b82f6;
+            background: #dbeafe;
+        }
+
+        .model-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin: 1.5rem 0;
+        }
+
+        .model-card {
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .model-card:hover {
+            border-color: #3b82f6;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+        }
+
+        .model-card.selected {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .model-card h4 {
+            margin: 0 0 0.5rem 0;
+            color: #1f2937;
+        }
+
+        .model-card p {
+            margin: 0;
+            color: #6b7280;
+            font-size: 0.875rem;
+        }
+
+        .compare-btn {
+            background: linear-gradient(135deg, #3b82f6, #06b6d4);
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            border-radius: 0.5rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 1.5rem;
+            transition: all 0.3s;
+        }
+
+        .compare-btn:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(59, 130, 246, 0.3);
+        }
+
+        .compare-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .results-section {
+            display: none;
+            margin-top: 2rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+
+        .result-panel {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .result-panel h3 {
+            margin: 0 0 1rem 0;
+            padding-bottom: 0.75rem;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .result-image-container {
+            position: relative;
+            width: 100%;
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .result-image {
+            width: 100%;
+            display: block;
+        }
+
+        .detection-info {
+            background: #f8fafc;
+            border-radius: 0.5rem;
+            padding: 1rem;
+            margin-top: 1rem;
+        }
+
+        .detection-item {
+            padding: 0.75rem;
+            background: white;
+            border-radius: 0.375rem;
+            margin-bottom: 0.5rem;
+            border-left: 3px solid #3b82f6;
+        }
+
+        .detection-label {
+            font-weight: 600;
+            color: #1f2937;
+            margin-bottom: 0.25rem;
+        }
+
+        .detection-bbox {
+            font-size: 0.875rem;
+            color: #6b7280;
+            font-family: monospace;
+        }
+
+        .loading-spinner {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .comparison-summary {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            margin-top: 1.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .summary-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .summary-item:last-child {
+            border-bottom: none;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            font-size: 0.875rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .badge-warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .badge-info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .preview-image {
+            max-width: 200px;
+            max-height: 200px;
+            margin: 1rem auto;
+            display: none;
+            border-radius: 0.5rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="header-content">
+            <h1 style="cursor: pointer;" onclick="window.location.href='index.html'">朱笔 Zhubi</h1>
+            <nav class="breadcrumb">
+                <a href="index.html">首页</a>
+                <span>/</span>
+                <span>模型对比验证</span>
+            </nav>
+        </div>
+    </header>
+
+    <div class="compare-container">
+        <!-- 上传区域 -->
+        <div class="upload-section">
+            <h2>📤 上传测试图片</h2>
+            <p style="color: #6b7280; margin-bottom: 1.5rem;">上传一张包含目标图标的截图，系统将使用不同模型进行识别对比</p>
+            
+            <div class="upload-area" id="uploadArea">
+                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+                <div class="upload-icon">📁</div>
+                <h3>点击上传或拖拽图片到此处</h3>
+                <p>支持 JPG, PNG, BMP, WEBP 格式</p>
+            </div>
+
+            <img id="previewImage" class="preview-image" alt="预览">
+
+            <div class="model-selector">
+                <div class="model-card selected" data-model="base">
+                    <h4>🔹 基础模型</h4>
+                    <p>未经微调的原始Florence-2模型</p>
+                    <p style="margin-top: 0.5rem; color: #3b82f6; font-weight: 600;">microsoft/Florence-2-base-ft</p>
+                </div>
+
+                <div class="model-card" data-model="finetuned">
+                    <h4>✨ 微调模型</h4>
+                    <p>使用自定义数据训练的模型</p>
+                    <p style="margin-top: 0.5rem; color: #10b981; font-weight: 600;" id="fineTunedModelName">选择项目...</p>
+                </div>
+            </div>
+
+            <select id="projectSelect" class="input-field" style="margin-top: 1rem;">
+                <option value="">选择微调模型的项目...</option>
+            </select>
+
+            <button class="compare-btn" id="compareBtn" disabled>
+                🔍 开始对比识别
+            </button>
+        </div>
+
+        <!-- 加载中 -->
+        <div class="loading-spinner" id="loadingSpinner">
+            <div class="spinner"></div>
+            <p style="margin-top: 1rem; color: #6b7280;">正在识别中，请稍候...</p>
+        </div>
+
+        <!-- 结果区域 -->
+        <div class="results-section" id="resultsSection">
+            <h2>📊 识别结果对比</h2>
+            
+            <div class="results-grid">
+                <!-- 基础模型结果 -->
+                <div class="result-panel">
+                    <h3>🔹 基础模型</h3>
+                    <div class="result-image-container">
+                        <img id="baseResultImage" class="result-image" alt="基础模型结果">
+                    </div>
+                    <div class="detection-info" id="baseDetections">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #6b7280;">检测结果：</h4>
+                    </div>
+                </div>
+
+                <!-- 微调模型结果 -->
+                <div class="result-panel">
+                    <h3>✨ 微调模型</h3>
+                    <div class="result-image-container">
+                        <img id="tunedResultImage" class="result-image" alt="微调模型结果">
+                    </div>
+                    <div class="detection-info" id="tunedDetections">
+                        <h4 style="margin: 0 0 0.75rem 0; color: #6b7280;">检测结果：</h4>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 对比总结 -->
+            <div class="comparison-summary">
+                <h3>📈 对比总结</h3>
+                <div id="summaryContent"></div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/compare_models.js"></script>
+</body>
+</html>
+

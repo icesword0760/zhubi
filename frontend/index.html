@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>朱笔 Zhubi · 本地图像标注与微调平台</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <a href="index.html">
+                    <h1>朱笔 Zhubi</h1>
+                    <p>本地图像标注与微调平台</p>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html" class="active">项目管理</a>
+                <a href="annotate_enhanced.html">图片标注</a>
+                <a href="export.html">数据导出</a>
+                <a href="train.html">模型训练</a>
+                <a href="compare_omniparser.html">OmniParser对比</a>
+            </nav>
+        </header>
+
+        <!-- 面包屑导航 -->
+        <nav class="breadcrumb">
+            <div class="breadcrumb-item active">
+                <span>🏠 首页</span>
+            </div>
+        </nav>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <!-- 欢迎区域 -->
+            <section class="welcome-section" id="welcomeSection">
+                <div class="welcome-card">
+                    <h2>👋 欢迎使用 朱笔 Zhubi</h2>
+                    <p>一个功能完整的本地图像标注与微调平台，支持Florence-2增量训练</p>
+                    <div class="features">
+                        <div class="feature-item">
+                            <span class="icon">📝</span>
+                            <h3>图形化标注</h3>
+                            <p>直观的标注界面，支持快捷键操作</p>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">📤</span>
+                            <h3>多格式导出</h3>
+                            <p>支持COCO、YOLO、Florence-2等格式</p>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">🚀</span>
+                            <h3>增量训练</h3>
+                            <p>基于Florence-2的模型微调</p>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">🔍</span>
+                            <h3>模型对比验证</h3>
+                            <p>OmniParser风格的可视化验证</p>
+                        </div>
+                        <div class="feature-item">
+                            <span class="icon">💾</span>
+                            <h3>本地存储</h3>
+                            <p>完全本地化，数据安全可控</p>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" onclick="showCreateProject()">
+                        ✨ 创建第一个项目
+                    </button>
+                </div>
+            </section>
+
+            <!-- 项目列表区域 -->
+            <section class="projects-section" id="projectsSection" style="display:none;">
+                <div class="section-header">
+                    <h2>📁 我的项目</h2>
+                    <button class="btn btn-primary" onclick="showCreateProject()">
+                        ➕ 新建项目
+                    </button>
+                </div>
+                <div class="projects-grid" id="projectsGrid">
+                    <!-- 项目卡片将动态插入这里 -->
+                </div>
+            </section>
+
+            <!-- 创建项目对话框 -->
+            <div class="modal" id="createProjectModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>创建新项目</h2>
+                        <button class="close-btn" onclick="hideCreateProject()">&times;</button>
+                    </div>
+                    <form id="createProjectForm" onsubmit="handleCreateProject(event)">
+                        <div class="form-group">
+                            <label for="projectName">项目名称 *</label>
+                            <input type="text" id="projectName" required 
+                                   placeholder="例如：垂直应用图标识别">
+                        </div>
+                        <div class="form-group">
+                            <label for="projectDescription">项目描述</label>
+                            <textarea id="projectDescription" rows="3" 
+                                      placeholder="简要描述这个项目的目的..."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="projectCategories">标注类别 * (每行一个)</label>
+                            <textarea id="projectCategories" rows="5" required 
+                                      placeholder="button&#10;icon&#10;text_box&#10;input_field"></textarea>
+                            <small>提示：每行输入一个类别名称</small>
+                        </div>
+                        <div class="form-actions">
+                            <button type="button" class="btn btn-secondary" 
+                                    onclick="hideCreateProject()">取消</button>
+                            <button type="submit" class="btn btn-primary">创建项目</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- 项目详情对话框 -->
+            <div class="modal" id="projectDetailModal">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h2>项目详情</h2>
+                        <button class="close-btn" onclick="hideProjectDetail()">&times;</button>
+                    </div>
+                    <div id="projectDetailContent">
+                        <!-- 详情内容动态插入 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- 底部 -->
+        <footer class="footer">
+            <p>© 2026 朱笔 Zhubi · 基于 OmniParser · AGPL-3.0 开源</p>
+        </footer>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>
+

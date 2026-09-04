@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>内存清理工具</title>
+    <style>
+        body { font-family: system-ui; padding: 40px; background: #f5f5f5; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        h1 { color: #333; margin: 0 0 10px; }
+        p { color: #666; margin: 0 0 30px; }
+        .info { background: #e3f2fd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #2196f3; }
+        .warning { background: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107; }
+        button { padding: 15px 30px; background: #f44336; color: white; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; width: 100%; }
+        button:hover { background: #d32f2f; }
+        .result { margin-top: 20px; padding: 15px; border-radius: 5px; display: none; }
+        .result.success { background: #c8e6c9; border-left: 4px solid #4caf50; }
+        .result.error { background: #ffcdd2; border-left: 4px solid #f44336; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧹 内存清理工具</h1>
+        <p>训练完成后释放内存资源</p>
+        
+        <div class="warning">
+            <strong>⚠️ 何时使用？</strong>
+            <ul style="margin: 10px 0 0; padding-left: 20px;">
+                <li>训练完成后内存占用仍然很高</li>
+                <li>系统响应变慢</li>
+                <li>准备开始新的训练</li>
+            </ul>
+        </div>
+        
+        <div class="info">
+            <strong>💡 清理内容：</strong>
+            <ul style="margin: 10px 0 0; padding-left: 20px;">
+                <li>PyTorch模型缓存（MPS/CUDA）</li>
+                <li>Python垃圾对象</li>
+                <li>未引用的训练数据</li>
+            </ul>
+        </div>
+        
+        <button onclick="cleanupMemory()">🚀 立即清理内存</button>
+        
+        <div id="result" class="result"></div>
+    </div>
+    
+    <script>
+        async function cleanupMemory() {
+            const btn = event.target;
+            const resultDiv = document.getElementById('result');
+            
+            btn.disabled = true;
+            btn.textContent = '🔄 清理中...';
+            resultDiv.style.display = 'none';
+            
+            try {
+                const response = await fetch('/api/system/cleanup', {
+                    method: 'POST'
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.innerHTML = `
+                        <strong>✅ 清理成功！</strong><br>
+                        ${result.message}<br><br>
+                        <small>建议：刷新页面后开始新的训练</small>
+                    `;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.innerHTML = `<strong>❌ 清理失败：</strong>${result.error}`;
+                }
+                
+                resultDiv.style.display = 'block';
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.innerHTML = `<strong>❌ 请求失败：</strong>${error.message}`;
+                resultDiv.style.display = 'block';
+            } finally {
+                btn.disabled = false;
+                btn.textContent = '🚀 立即清理内存';
+            }
+        }
+    </script>
+</body>
+</html>

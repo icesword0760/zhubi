@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型验证 - 朱笔 Zhubi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .validation-container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .upload-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .upload-area {
+            border: 3px dashed #d1d5db;
+            border-radius: 0.75rem;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: #f9fafb;
+        }
+
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .upload-area.has-image {
+            border-style: solid;
+            border-color: #3b82f6;
+            background: white;
+        }
+
+        .preview-image {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 0.5rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .model-selection-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            margin-bottom: 2rem;
+        }
+
+        .model-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+
+        .model-card {
+            padding: 1.5rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: #f9fafb;
+        }
+
+        .model-card h4 {
+            margin: 0 0 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            color: #1f2937;
+        }
+
+        .comparison-section {
+            background: white;
+            border-radius: 0.75rem;
+            padding: 2rem;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .comparison-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 1.5rem;
+        }
+
+        .result-card {
+            border: 2px solid #e5e7eb;
+            border-radius: 0.75rem;
+            overflow: hidden;
+            background: white;
+        }
+
+        .result-header {
+            padding: 1rem 1.5rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .result-content {
+            padding: 1.5rem;
+        }
+
+        .result-image {
+            width: 100%;
+            border-radius: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .result-info {
+            background: #f9fafb;
+            padding: 1rem;
+            border-radius: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        .result-info-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .result-info-item:last-child {
+            border-bottom: none;
+        }
+
+        .loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+        }
+
+        .loading-content {
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 1rem;
+            text-align: center;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        }
+
+        .spinner {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .model-grid, .comparison-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <a href="index.html">
+                    <h1>朱笔 Zhubi</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html">项目管理</a>
+                <a href="annotate_enhanced.html">图片标注</a>
+                <a href="export.html">数据导出</a>
+                <a href="train.html">模型训练</a>
+                <a href="validate.html" class="active">模型验证</a>
+            </nav>
+        </header>
+
+        <!-- 面包屑导航 -->
+        <nav class="breadcrumb">
+            <div class="breadcrumb-item">
+                <a href="index.html">🏠 首页</a>
+            </div>
+            <span class="breadcrumb-separator">/</span>
+            <div class="breadcrumb-item active">
+                <span>🔍 模型验证</span>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="validation-container">
+                <!-- 页面标题 -->
+                <div class="page-header">
+                    <h2>🔍 模型验证对比</h2>
+                    <p>上传测试图片，对比训练前后的模型效果</p>
+                </div>
+
+                <!-- 上传区域 -->
+                <div class="upload-section">
+                    <h3 style="margin: 0 0 1.5rem 0;">📤 上传测试图片</h3>
+                    <div class="upload-area" id="uploadArea" onclick="document.getElementById('validationImage').click()">
+                        <input type="file" id="validationImage" accept="image/*" style="display:none" 
+                               onchange="handleImageUpload(event)">
+                        <div id="uploadPrompt">
+                            <p style="font-size: 3rem; margin: 0;">📸</p>
+                            <p style="margin: 1rem 0 0.5rem; font-size: 1.125rem; font-weight: 600; color: #1f2937;">
+                                点击或拖拽上传测试图片
+                            </p>
+                            <p style="margin: 0; color: #6b7280; font-size: 0.875rem;">
+                                支持 JPG、PNG、WEBP 格式
+                            </p>
+                        </div>
+                        <div id="imagePreview" style="display:none;">
+                            <img id="previewImage" class="preview-image">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模型选择区域 -->
+                <div class="model-selection-section" id="modelSelection" style="display:none;">
+                    <h3 style="margin: 0 0 1rem 0;">🎯 选择对比模型</h3>
+                    <p style="margin: 0 0 1.5rem 0; color: #6b7280; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">
+                        💡 <strong>提示：</strong>OmniParser 使用两个模型协同工作 - YOLO负责检测图标位置，Florence-2负责识别图标含义
+                    </p>
+                    
+                    <div class="model-grid">
+                        <div class="model-card">
+                            <h4>
+                                <span style="font-size: 1.5rem;">📦</span>
+                                基础模型组（训练前）
+                            </h4>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151; font-size: 0.875rem;">
+                                    🎯 YOLO 检测模型
+                                </label>
+                                <select id="baseYoloSelect" class="form-control" style="width: 100%;">
+                                    <option value="">-- 选择YOLO模型 --</option>
+                                </select>
+                                <small style="color: #6b7280; margin-top: 0.25rem; display: block;">负责检测图标位置</small>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151; font-size: 0.875rem;">
+                                    🖼️ Florence-2 识别模型
+                                </label>
+                                <select id="baseFlorence2Select" class="form-control" style="width: 100%;">
+                                    <option value="">-- 选择Florence-2模型 --</option>
+                                </select>
+                                <small style="color: #6b7280; margin-top: 0.25rem; display: block;">负责识别图标含义</small>
+                            </div>
+                        </div>
+
+                        <div class="model-card">
+                            <h4>
+                                <span style="font-size: 1.5rem;">✨</span>
+                                微调模型组（训练后）
+                            </h4>
+                            
+                            <div style="margin-bottom: 1rem;">
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151; font-size: 0.875rem;">
+                                    🎯 YOLO 检测模型（可选）
+                                </label>
+                                <select id="trainedYoloSelect" class="form-control" style="width: 100%;">
+                                    <option value="">-- 不选则使用基础模型 --</option>
+                                </select>
+                                <small style="color: #6b7280; margin-top: 0.25rem; display: block;">可选，不选则使用基础YOLO</small>
+                            </div>
+                            
+                            <div>
+                                <label style="display: block; font-weight: 600; margin-bottom: 0.5rem; color: #374151; font-size: 0.875rem;">
+                                    🖼️ Florence-2 识别模型（可选）
+                                </label>
+                                <select id="trainedFlorence2Select" class="form-control" style="width: 100%;">
+                                    <option value="">-- 不选则使用基础模型 --</option>
+                                </select>
+                                <small style="color: #6b7280; margin-top: 0.25rem; display: block;">可选，不选则使用基础Florence-2</small>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 进度条区域（初始隐藏） -->
+                    <div id="progressSection" style="display: none; margin-top: 1.5rem; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border-left: 4px solid #3b82f6;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 600; color: #1e40af;">验证进度</span>
+                            <span id="progressPercent" style="font-weight: 600; color: #3b82f6;">0%</span>
+                        </div>
+                        <div style="background: #dbeafe; height: 8px; border-radius: 4px; overflow: hidden;">
+                            <div id="progressBar" style="background: linear-gradient(90deg, #3b82f6, #06b6d4); height: 100%; width: 0%; transition: width 0.3s;"></div>
+                        </div>
+                        <p id="progressText" style="margin: 0.5rem 0 0; font-size: 0.875rem; color: #1e40af;">
+                            准备中...
+                        </p>
+                    </div>
+
+                    <button id="startValidationBtn" class="btn btn-primary" onclick="startValidation()" 
+                            style="width: 100%; margin-top: 1.5rem; padding: 1rem; font-size: 1.125rem;">
+                        <span style="font-size: 1.25rem;">🚀</span> 开始对比验证
+                    </button>
+
+                    <!-- 验证日志面板（常态化显示） -->
+                    <div id="validationLogSection" style="margin-top: 1.5rem; background: #1f2937; border-radius: 0.5rem; overflow: hidden;">
+                        <div style="padding: 0.75rem 1rem; background: #111827; border-bottom: 1px solid #374151; display: flex; justify-content: space-between; align-items: center;">
+                            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span style="font-weight: 600; color: #f3f4f6;">📋 验证日志</span>
+                                <span id="logCount" style="font-size: 0.75rem; color: #9ca3af; background: #374151; padding: 0.125rem 0.5rem; border-radius: 0.25rem;">0</span>
+                            </div>
+                            <button onclick="clearValidationLog()" style="background: #374151; border: none; color: #9ca3af; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem;">
+                                清空
+                            </button>
+                        </div>
+                        <div id="validationLog" style="padding: 1rem; max-height: 300px; overflow-y: auto; font-family: 'Courier New', monospace; font-size: 0.875rem; line-height: 1.6; color: #f3f4f6;">
+                            <div style="color: #9ca3af;">等待开始验证...</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 验证结果区域 -->
+                <div class="comparison-section" id="comparisonResults" style="display:none;">
+                    <h3 style="margin: 0 0 0.5rem 0;">📊 验证结果对比</h3>
+                    <p style="color: #6b7280; font-size: 0.875rem; margin: 0 0 1.5rem;">
+                        左侧为基础模型结果，右侧为微调模型结果
+                    </p>
+                    
+                    <div class="comparison-grid" id="comparisonGrid">
+                        <!-- 对比结果将动态插入这里 -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+
+    <!-- 调试日志面板 -->
+    <div id="debugPanel" style="position: fixed; bottom: 0; left: 0; right: 0; background: #1f2937; color: #f3f4f6; max-height: 300px; overflow-y: auto; display: block; z-index: 9998; border-top: 2px solid #3b82f6; font-family: 'Courier New', monospace; font-size: 0.875rem;">
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; background: #111827; border-bottom: 1px solid #374151;">
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-weight: 600;">🔍 调试日志</span>
+                <button onclick="clearDebugLog()" style="background: #374151; border: none; color: #9ca3af; padding: 0.25rem 0.5rem; border-radius: 0.25rem; cursor: pointer; font-size: 0.75rem;">
+                    清空
+                </button>
+            </div>
+            <button onclick="toggleDebugPanel()" style="background: none; border: none; color: #9ca3af; cursor: pointer; font-size: 1.25rem;">
+                ✕
+            </button>
+        </div>
+        <div id="debugLog" style="padding: 1rem; line-height: 1.6;">
+            <!-- 日志内容 -->
+        </div>
+    </div>
+
+    <!-- 切换调试面板按钮 -->
+    <button id="toggleDebugBtn" onclick="toggleDebugPanel()" style="position: fixed; bottom: 20px; right: 20px; background: linear-gradient(135deg, #3b82f6, #2563eb); color: white; border: none; padding: 0.75rem 1rem; border-radius: 0.5rem; cursor: pointer; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4); z-index: 9999; font-weight: 600; display: flex; align-items: center; gap: 0.5rem;">
+        <span>🔍</span>
+        <span>调试日志</span>
+    </button>
+
+    <script src="js/validate.js"></script>
+</body>
+</html>
+

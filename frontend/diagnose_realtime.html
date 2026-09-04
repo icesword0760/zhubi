@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>实时日志诊断</title>
+    <style>
+        body { font-family: monospace; padding: 20px; background: #1e1e1e; color: #d4d4d4; }
+        .section { margin: 20px 0; padding: 15px; background: #252526; border-radius: 5px; }
+        .section h3 { margin: 0 0 10px; color: #4ec9b0; }
+        .log { padding: 10px; background: #1e1e1e; border-radius: 3px; max-height: 300px; overflow-y: auto; }
+        .log-line { margin: 3px 0; }
+        .success { color: #4ec9b0; }
+        .error { color: #f48771; }
+        .warning { color: #ce9178; }
+        .info { color: #569cd6; }
+        button { padding: 10px 20px; background: #0e639c; color: white; border: none; border-radius: 5px; cursor: pointer; margin: 5px; }
+        button:hover { background: #1177bb; }
+        .status { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+        .status.on { background: #4ec9b0; }
+        .status.off { background: #6e7681; }
+    </style>
+</head>
+<body>
+    <h1>🔍 实时日志诊断工具</h1>
+    <p>项目：垂直图标训练</p>
+    
+    <div class="section">
+        <h3>控制面板</h3>
+        <button onclick="startMonitoring()">🚀 开始监控</button>
+        <button onclick="stopMonitoring()">⏸️ 停止监控</button>
+        <button onclick="clearLogs()">🗑️ 清空日志</button>
+        <button onclick="testAPIs()">🧪 测试API</button>
+    </div>
+    
+    <div class="section">
+        <h3>监控状态</h3>
+        <div>
+            <span class="status" id="statusProgress"></span>
+            <span>进度轮询: </span>
+            <span id="progressStatus">未启动</span>
+        </div>
+        <div>
+            <span class="status" id="statusLogs"></span>
+            <span>日志轮询: </span>
+            <span id="logsStatus">未启动</span>
+        </div>
+    </div>
+    
+    <div class="section">
+        <h3>最新进度数据</h3>
+        <div class="log" id="progressData">等待数据...</div>
+    </div>
+    
+    <div class="section">
+        <h3>最新日志数据</h3>
+        <div class="log" id="logsData">等待数据...</div>
+    </div>
+    
+    <div class="section">
+        <h3>诊断日志</h3>
+        <div class="log" id="diagnosticLog"></div>
+    </div>
+    
+    <script>
+        const PROJECT_ID = "垂直图标训练";
+        const API_BASE = "";
+        let progressInterval = null;
+        let logsInterval = null;
+        
+        function log(message, type = 'info') {
+            const logDiv = document.getElementById('diagnosticLog');
+            const time = new Date().toLocaleTimeString();
+            const className = type;
+            logDiv.innerHTML += `<div class="log-line ${className}">[${time}] ${message}</div>`;
+            logDiv.scrollTop = logDiv.scrollHeight;
+        }
+        
+        function updateStatus(type, active) {
+            const statusEl = document.getElementById(`status${type}`);
+            const textEl = document.getElementById(`${type.toLowerCase()}Status`);
+            statusEl.className = `status ${active ? 'on' : 'off'}`;
+            textEl.textContent = active ? '运行中' : '已停止';
+        }
+        
+        async function checkProgressAPI() {
+            try {
+                const response = await fetch(`${API_BASE}/api/projects/${PROJECT_ID}/train/progress`);
+                const result = await response.json();
+                
+                if (result.success && result.data) {
+                    log(`✅ 进度API返回: epoch ${result.data.current_epoch}/${result.data.total_epochs}, loss ${result.data.current_loss}`, 'success');
+                    document.getElementById('progressData').innerHTML = JSON.stringify(result.data, null, 2);
+                    return true;
+                } else {
+                    log(`⚠️ 进度API: ${result.message || result.status}`, 'warning');
+                    document.getElementById('progressData').innerHTML = JSON.stringify(result, null, 2);
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ 进度API错误: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        async function checkLogsAPI() {
+            try {
+                const response = await fetch(`${API_BASE}/api/projects/${PROJECT_ID}/train/logs`);
+                const result = await response.json();
+                
+                if (result.success) {
+                    const lines = result.logs ? result.logs.split('\\n').filter(l => l.trim()).length : 0;
+                    log(`✅ 日志API返回: ${lines} 行`, 'success');
+                    document.getElementById('logsData').innerHTML = result.logs || '(空)';
+                    return true;
+                } else {
+                    log(`⚠️ 日志API: ${result.message}`, 'warning');
+                    document.getElementById('logsData').innerHTML = JSON.stringify(result, null, 2);
+                    return false;
+                }
+            } catch (error) {
+                log(`❌ 日志API错误: ${error.message}`, 'error');
+                return false;
+            }
+        }
+        
+        function startMonitoring() {
+            log('🚀 开始监控...', 'info');
+            
+            // 停止之前的轮询
+            stopMonitoring();
+            
+            // 开始进度轮询
+            progressInterval = setInterval(async () => {
+                await checkProgressAPI();
+            }, 2000);
+            updateStatus('Progress', true);
+            
+            // 开始日志轮询
+            logsInterval = setInterval(async () => {
+                await checkLogsAPI();
+            }, 2000);
+            updateStatus('Logs', true);
+            
+            // 立即执行一次
+            checkProgressAPI();
+            checkLogsAPI();
+        }
+        
+        function stopMonitoring() {
+            if (progressInterval) {
+                clearInterval(progressInterval);
+                progressInterval = null;
+                updateStatus('Progress', false);
+            }
+            if (logsInterval) {
+                clearInterval(logsInterval);
+                logsInterval = null;
+                updateStatus('Logs', false);
+            }
+            log('⏸️ 监控已停止', 'warning');
+        }
+        
+        function clearLogs() {
+            document.getElementById('diagnosticLog').innerHTML = '';
+            log('🗑️ 日志已清空', 'info');
+        }
+        
+        async function testAPIs() {
+            log('🧪 测试API连接...', 'info');
+            await checkProgressAPI();
+            await checkLogsAPI();
+        }
+        
+        // 页面加载时检查
+        window.onload = () => {
+            log('✅ 诊断工具已加载', 'success');
+            log('💡 使用说明:', 'info');
+            log('  1. 在另一个标签打开训练页面开始训练', 'info');
+            log('  2. 点击"开始监控"按钮', 'info');
+            log('  3. 观察是否有进度和日志更新', 'info');
+            log('  4. 如果没有更新，说明轮询或API有问题', 'info');
+        };
+    </script>
+</body>
+</html>

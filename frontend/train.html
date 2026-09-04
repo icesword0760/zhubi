@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>模型训练 - 朱笔 Zhubi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <style>
+        .training-section {
+            background: white;
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+
+        .progress-container {
+            margin: 1rem 0;
+            display: none;
+        }
+
+        .progress-bar-wrapper {
+            width: 100%;
+            height: 30px;
+            background: #e5e7eb;
+            border-radius: 15px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .progress-bar {
+            height: 100%;
+            background: linear-gradient(90deg, #3b82f6, #06b6d4);
+            transition: width 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: bold;
+            font-size: 0.875rem;
+        }
+
+        .model-type-selector {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .model-type-btn {
+            flex: 1;
+            padding: 1rem;
+            border: 2px solid #e5e7eb;
+            border-radius: 0.5rem;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .model-type-btn.active {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .model-type-btn:hover {
+            border-color: #3b82f6;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <a href="index.html">
+                    <h1>朱笔 Zhubi</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html">项目管理</a>
+                <a href="annotate_enhanced.html">图片标注</a>
+                <a href="export.html">数据导出</a>
+                <a href="train.html" class="active">模型训练</a>
+                <a href="compare_omniparser.html">OmniParser对比</a>
+            </nav>
+        </header>
+
+        <!-- 面包屑导航 -->
+        <nav class="breadcrumb">
+            <div class="breadcrumb-item">
+                <a href="index.html">🏠 首页</a>
+            </div>
+            <span class="breadcrumb-separator">/</span>
+            <div class="breadcrumb-item active">
+                <span>🚀 模型训练</span>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="page-header">
+                <h2>🚀 模型增量训练</h2>
+                <p>支持YOLO和Florence-2模型的增量训练和验证对比</p>
+            </div>
+
+            <!-- 训练区域 -->
+            <div style="max-width: 1200px; margin: 0 auto;">
+                <div class="training-section">
+                    <h3>训练配置</h3>
+                    
+                    <!-- 模型类型选择 -->
+                    <div class="model-type-selector">
+                        <div class="model-type-btn active" data-type="yolo" onclick="selectModelType('yolo')">
+                            <h4>🎯 YOLO</h4>
+                            <p style="margin: 0.5rem 0 0; font-size: 0.875rem; color: #6b7280;">
+                                目标检测模型
+                            </p>
+                        </div>
+                        <div class="model-type-btn" data-type="florence2" onclick="selectModelType('florence2')">
+                            <h4>🖼️ Florence-2</h4>
+                            <p style="margin: 0.5rem 0 0; font-size: 0.875rem; color: #6b7280;">
+                                视觉语言模型
+                            </p>
+                        </div>
+                    </div>
+
+                    <!-- 智能配置助手 -->
+                    <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0.75rem; padding: 1.5rem; margin-bottom: 1.5rem; color: white;">
+                        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 1rem;">
+                            <span style="font-size: 2rem;">🎯</span>
+                            <div>
+                                <h3 style="margin: 0; font-size: 1.125rem;">智能配置助手</h3>
+                                <p style="margin: 0.25rem 0 0; font-size: 0.875rem; opacity: 0.9;">快速选择适合您场景的训练配置</p>
+                            </div>
+                        </div>
+                        
+                        <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                            <div onclick="applySmartConfig('quick')" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='transparent'">
+                                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">⚡</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">极速验证</div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">快速测试模型效果</div>
+                                <div style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;">• 轮数: 10-20<br>• 数据: 轻度增强<br>• 时间: ~10分钟</div>
+                            </div>
+                            
+                            <div onclick="applySmartConfig('standard')" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='transparent'">
+                                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🎯</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">标准训练</div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">平衡效果与时间</div>
+                                <div style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;">• 轮数: 50<br>• 数据: 中度增强<br>• 时间: ~30分钟</div>
+                            </div>
+                            
+                            <div onclick="applySmartConfig('production')" style="background: rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 1rem; border-radius: 0.5rem; cursor: pointer; transition: all 0.2s; border: 2px solid transparent;" onmouseover="this.style.background='rgba(255,255,255,0.25)'; this.style.borderColor='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.15)'; this.style.borderColor='transparent'">
+                                <div style="font-size: 1.5rem; margin-bottom: 0.5rem;">🏭</div>
+                                <div style="font-weight: 600; margin-bottom: 0.25rem;">生产部署</div>
+                                <div style="font-size: 0.75rem; opacity: 0.9;">最佳模型性能</div>
+                                <div style="font-size: 0.75rem; margin-top: 0.5rem; opacity: 0.8;">• 轮数: 100<br>• 数据: 激进增强<br>• 时间: ~1小时</div>
+                            </div>
+                        </div>
+                        
+                        <div id="configSummary" style="margin-top: 1rem; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 0.375rem; font-size: 0.875rem; display: none;">
+                            <strong>当前配置：</strong> <span id="configSummaryText"></span>
+                        </div>
+                    </div>
+
+                    <form id="trainForm" onsubmit="handleTrain(event)">
+                        <!-- 项目选择 -->
+                        <div class="form-section">
+                            <h4>1️⃣ 选择项目</h4>
+                            <div class="form-group">
+                                <select id="projectSelect" required onchange="checkDataset()">
+                                    <option value="">-- 请选择项目 --</option>
+                                </select>
+                            </div>
+                            <div id="datasetStatus" class="dataset-status" style="display:none;">
+                                <!-- 数据集状态 -->
+                            </div>
+                        </div>
+
+                        <!-- YOLO参数 -->
+                        <div id="yoloParams" class="form-section">
+                            <h4>2️⃣ YOLO训练参数</h4>
+                            <div class="param-grid">
+                                <div class="param-item">
+                                    <label for="yoloEpochs">训练轮数 (Epochs)</label>
+                                    <input type="number" id="yoloEpochs" value="50" min="1">
+                                    <small>推荐：50-100（可设置任意大值，配合早停使用）</small>
+                                </div>
+                                <div class="param-item">
+                                    <label for="yoloBatchSize">批次大小 (Batch Size)</label>
+                                    <input type="number" id="yoloBatchSize" value="16" min="1" max="64">
+                                    <small>根据显存调整</small>
+                                </div>
+                                <div class="param-item">
+                                    <label for="yoloLearningRate">学习率</label>
+                                    <input type="text" id="yoloLearningRate" value="0.01">
+                                    <small>推荐：0.001-0.01</small>
+                                </div>
+                                <div class="param-item">
+                                    <label for="yoloDevice">训练设备</label>
+                                    <select id="yoloDevice">
+                                        <option value="auto">自动选择</option>
+                                        <option value="cuda">CUDA (NVIDIA GPU)</option>
+                                        <option value="mps">MPS (Apple Silicon)</option>
+                                        <option value="cpu">CPU</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <!-- 数据划分配置 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>3️⃣ 数据集划分</h4>
+                                <div class="param-grid">
+                                    <div class="param-item">
+                                        <label for="yoloTrainSplit">训练集 (%)</label>
+                                        <input type="number" id="yoloTrainSplit" value="70" min="10" max="90" step="5">
+                                    </div>
+                                    <div class="param-item">
+                                        <label for="yoloValSplit">验证集 (%)</label>
+                                        <input type="number" id="yoloValSplit" value="20" min="5" max="50" step="5">
+                                    </div>
+                                    <div class="param-item">
+                                        <label for="yoloTestSplit">测试集 (%)</label>
+                                        <input type="number" id="yoloTestSplit" value="10" min="0" max="50" step="5">
+                                    </div>
+                                </div>
+                                <small style="color: #6b7280; display: block; margin-top: 0.5rem;">
+                                    三者之和应该等于100%。测试集可以为0。
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Florence-2参数 -->
+                        <div id="florence2Params" class="form-section" style="display:none;">
+                            <h4>2️⃣ Florence-2训练参数</h4>
+                            <div class="param-grid">
+                                <div class="param-item">
+                                    <label for="florenceEpochs">训练轮数 (Epochs)</label>
+                                    <input type="number" id="florenceEpochs" value="15" min="1">
+                                    <small>推荐：单类别15轮，多类别30-50轮（可设置任意大值，配合早停使用）</small>
+                                </div>
+                                <div class="param-item">
+                                    <label for="florenceLearningRate">学习率</label>
+                                    <select id="florenceLearningRate">
+                                        <option value="0.0000005">5e-7 (0.0000005) - 极保守</option>
+                                        <option value="0.000001" selected>1e-6 (0.000001) - 标准推荐 ⭐</option>
+                                        <option value="0.000005">5e-6 (0.000005) - 快速训练</option>
+                                        <option value="0.00001">1e-5 (0.00001) - 激进</option>
+                                    </select>
+                                    <small>推荐：1e-6（平衡），5e-7（保守慢），5e-6（快速）</small>
+                                </div>
+                                <div class="param-item">
+                                    <label for="florenceBatchSize">批次大小</label>
+                                    <input type="number" id="florenceBatchSize" value="12" min="1">
+                                    <small>M4 Pro 48GB推荐：12-20，根据内存自行调整</small>
+                                </div>
+                                <div class="param-item">
+                                    <label for="florenceDevice">训练设备</label>
+                                    <select id="florenceDevice">
+                                        <option value="auto">自动选择</option>
+                                        <option value="cuda">CUDA (NVIDIA GPU)</option>
+                                        <option value="mps">MPS (Apple Silicon)</option>
+                                        <option value="cpu">CPU</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <!-- 数据划分配置 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>3️⃣ 数据集划分</h4>
+                                <div class="param-grid">
+                                    <div class="param-item">
+                                        <label for="trainSplit">训练集 (%)</label>
+                                        <input type="number" id="trainSplit" value="70" min="10" max="90" step="5">
+                                    </div>
+                                    <div class="param-item">
+                                        <label for="valSplit">验证集 (%)</label>
+                                        <input type="number" id="valSplit" value="20" min="5" max="50" step="5">
+                                    </div>
+                                    <div class="param-item">
+                                        <label for="testSplit">测试集 (%)</label>
+                                        <input type="number" id="testSplit" value="10" min="0" max="50" step="5">
+                                    </div>
+                                </div>
+                                <small style="color: #6b7280; display: block; margin-top: 0.5rem;">
+                                    三者之和应该等于100%。测试集可以为0。
+                                </small>
+                            </div>
+
+                            <!-- 数据增强 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>4️⃣ 智能数据增强（推荐）</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                                        <span style="font-size: 1.25rem;">💡</span>
+                                        <div style="font-size: 0.875rem; color: #475569;">
+                                            <strong>什么是数据增强？</strong>
+                                            <p style="margin: 0.5rem 0 0 0;">通过亮度、对比度、锐化、分辨率、DPI等变换自动生成更多训练样本，提升模型泛化能力。特别适合标注数据较少的情况。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="useAugmentation" onchange="toggleAugmentationOptions()">
+                                    <span>启用智能数据增强</span>
+                                </label>
+                                
+                                <div id="augmentationOptions" style="display: none; margin-top: 1rem; padding: 1rem; background: #f0f9ff; border-radius: 0.5rem; border: 1px solid #bae6fd;">
+                                    <!-- 设备端推荐配置 -->
+                                    <div style="margin-bottom: 1.5rem;">
+                                        <label style="display: block; margin-bottom: 0.75rem; font-weight: 600; color: #0c4a6e;">
+                                            🎯 设备端推荐配置
+                                        </label>
+                                        <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                                            <div onclick="selectDeviceConfig('mobile')" id="device-mobile" style="padding: 0.75rem; border: 2px solid #cbd5e1; border-radius: 0.375rem; cursor: pointer; text-align: center; background: white; transition: all 0.2s;">
+                                                <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">📱</div>
+                                                <div style="font-size: 0.75rem; font-weight: 600;">移动端</div>
+                                            </div>
+                                            <div onclick="selectDeviceConfig('desktop')" id="device-desktop" style="padding: 0.75rem; border: 2px solid #cbd5e1; border-radius: 0.375rem; cursor: pointer; text-align: center; background: white; transition: all 0.2s;">
+                                                <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">🖥️</div>
+                                                <div style="font-size: 0.75rem; font-weight: 600;">桌面端</div>
+                                            </div>
+                                            <div onclick="selectDeviceConfig('web')" id="device-web" style="padding: 0.75rem; border: 2px solid #cbd5e1; border-radius: 0.375rem; cursor: pointer; text-align: center; background: white; transition: all 0.2s;">
+                                                <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">🌐</div>
+                                                <div style="font-size: 0.75rem; font-weight: 600;">Web端</div>
+                                            </div>
+                                            <div onclick="selectDeviceConfig('cross_platform')" id="device-cross_platform" style="padding: 0.75rem; border: 2px solid #cbd5e1; border-radius: 0.375rem; cursor: pointer; text-align: center; background: white; transition: all 0.2s;">
+                                                <div style="font-size: 1.25rem; margin-bottom: 0.25rem;">🔄</div>
+                                                <div style="font-size: 0.75rem; font-weight: 600;">跨平台</div>
+                                            </div>
+                                        </div>
+                                        <div id="deviceConfigDesc" style="padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.375rem; font-size: 0.75rem; color: #1e40af; display: none;">
+                                            <!-- 设备配置描述 -->
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- 增强策略选择 -->
+                                    <div style="margin-bottom: 1rem;">
+                                        <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #0c4a6e;">
+                                            增强策略
+                                        </label>
+                                        <select id="augmentationStrategy" onchange="updateAugmentationPreview()">
+                                            <option value="light">轻度增强（每个样本生成3-5个变体）</option>
+                                            <option value="moderate" selected>中度增强（每个样本生成6-8个变体）</option>
+                                            <option value="aggressive">激进增强（每个样本生成10-15个变体）</option>
+                                            <option value="super">🔥 Super增强（35种变换，包含边缘检测、透视变换等高级技术）</option>
+                                            <option value="mobile">移动端优化（DPI缩放+方向+暗色模式）</option>
+                                            <option value="desktop">桌面端优化（分辨率+DPI+锐化）</option>
+                                            <option value="web">Web端优化（浏览器缩放+压缩+暗色）</option>
+                                            <option value="cross_platform">跨平台（综合所有增强策略）</option>
+                                            <option value="custom">自定义...</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <div id="customAugmentation" style="display: none;">
+                                        <div style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem; border: 1px solid #e2e8f0;">
+                                            
+                                            <!-- 亮度调整 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('brightness')">
+                                                    <span id="brightness-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▼</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" checked data-aug-category="brightness" onchange="toggleAllInCategory('brightness')" onclick="event.stopPropagation()">
+                                                        <span>💡 亮度调整 (5种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="brightness-methods" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="brightness" data-method="bright_1_2" onchange="updateCustomAugmentationPreview()">
+                                                        <span>亮度+20%</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="brightness" data-method="bright_1_4" onchange="updateCustomAugmentationPreview()">
+                                                        <span>亮度+40%</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="brightness" data-method="dark_0_6" onchange="updateCustomAugmentationPreview()">
+                                                        <span>亮度-40%</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="brightness" data-method="dark_0_8" onchange="updateCustomAugmentationPreview()">
+                                                        <span>亮度-20%</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="brightness" data-method="dark_mode" onchange="updateCustomAugmentationPreview()">
+                                                        <span>暗色模式(-50%)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 对比度调整 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('contrast')">
+                                                    <span id="contrast-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▼</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" checked data-aug-category="contrast" onchange="toggleAllInCategory('contrast')" onclick="event.stopPropagation()">
+                                                        <span>🎨 对比度调整 (4种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="contrast-methods" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="contrast" data-method="contrast_high" onchange="updateCustomAugmentationPreview()">
+                                                        <span>高对比度(1.5x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="contrast" data-method="contrast_low" onchange="updateCustomAugmentationPreview()">
+                                                        <span>低对比度(0.7x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="contrast" data-method="contrast_very_high" onchange="updateCustomAugmentationPreview()">
+                                                        <span>超高对比度(1.8x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="contrast" data-method="contrast_very_low" onchange="updateCustomAugmentationPreview()">
+                                                        <span>超低对比度(0.5x)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- DPI/分辨率 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('dpi')">
+                                                    <span id="dpi-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▼</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" checked data-aug-category="dpi" onchange="toggleAllInCategory('dpi')" onclick="event.stopPropagation()">
+                                                        <span>📐 DPI/分辨率 (6种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="dpi-methods" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="dpi" data-method="dpi_0_5x" onchange="updateCustomAugmentationPreview()">
+                                                        <span>0.5倍</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="dpi" data-method="dpi_0_75x" onchange="updateCustomAugmentationPreview()">
+                                                        <span>0.75倍</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="dpi" data-method="dpi_1_25x" onchange="updateCustomAugmentationPreview()">
+                                                        <span>1.25倍</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="dpi" data-method="dpi_1_5x" onchange="updateCustomAugmentationPreview()">
+                                                        <span>1.5倍</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="dpi" data-method="dpi_2x" onchange="updateCustomAugmentationPreview()">
+                                                        <span>2倍</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="dpi" data-method="dpi_3x" onchange="updateCustomAugmentationPreview()">
+                                                        <span>3倍</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 锐化/模糊 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('sharpness')">
+                                                    <span id="sharpness-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▼</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" checked data-aug-category="sharpness" onchange="toggleAllInCategory('sharpness')" onclick="event.stopPropagation()">
+                                                        <span>🔪 锐化/模糊 (5种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="sharpness-methods" style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="sharpness" data-method="ultra_sharp" onchange="updateCustomAugmentationPreview()">
+                                                        <span>超锐化(2.5x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="sharpness" data-method="sharp" onchange="updateCustomAugmentationPreview()">
+                                                        <span>锐化(1.8x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="sharpness" data-method="slight_blur" onchange="updateCustomAugmentationPreview()">
+                                                        <span>轻微模糊</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="sharpness" data-method="blur" onchange="updateCustomAugmentationPreview()">
+                                                        <span>模糊</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" checked data-aug="sharpness" data-method="motion_blur" onchange="updateCustomAugmentationPreview()">
+                                                        <span>运动模糊</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 边缘检测 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('edge')">
+                                                    <span id="edge-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▶</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" data-aug-category="edge" onchange="toggleAllInCategory('edge')" onclick="event.stopPropagation()">
+                                                        <span>🔍 边缘检测 (3种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="edge-methods" style="display: none; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="edge" data-method="edge_enhance" onchange="updateCustomAugmentationPreview()">
+                                                        <span>边缘增强</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="edge" data-method="edge_enhance_more" onchange="updateCustomAugmentationPreview()">
+                                                        <span>强边缘增强</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="edge" data-method="find_edges" onchange="updateCustomAugmentationPreview()">
+                                                        <span>边缘检测</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 噪声/压缩 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('noise')">
+                                                    <span id="noise-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▶</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" data-aug-category="noise" onchange="toggleAllInCategory('noise')" onclick="event.stopPropagation()">
+                                                        <span>📡 噪声/压缩 (4种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="noise-methods" style="display: none; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="noise" data-method="noise_light" onchange="updateCustomAugmentationPreview()">
+                                                        <span>轻微噪声</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="noise" data-method="noise_medium" onchange="updateCustomAugmentationPreview()">
+                                                        <span>中等噪声</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="noise" data-method="compressed_60" onchange="updateCustomAugmentationPreview()">
+                                                        <span>压缩60%</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="noise" data-method="compressed_40" onchange="updateCustomAugmentationPreview()">
+                                                        <span>压缩40%</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 颜色饱和度 -->
+                                            <div class="aug-category" style="margin-bottom: 1rem;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('saturation')">
+                                                    <span id="saturation-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▶</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" data-aug-category="saturation" onchange="toggleAllInCategory('saturation')" onclick="event.stopPropagation()">
+                                                        <span>🌈 颜色饱和度 (4种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="saturation-methods" style="display: none; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="saturation" data-method="saturated_high" onchange="updateCustomAugmentationPreview()">
+                                                        <span>高饱和度(1.4x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="saturation" data-method="saturated_low" onchange="updateCustomAugmentationPreview()">
+                                                        <span>低饱和度(0.6x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="saturation" data-method="saturated_very_high" onchange="updateCustomAugmentationPreview()">
+                                                        <span>超高饱和度(1.6x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="saturation" data-method="desaturated" onchange="updateCustomAugmentationPreview()">
+                                                        <span>去饱和度(0.4x)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                            <!-- 旋转/缩放 -->
+                                            <div class="aug-category" style="margin-bottom: 0;">
+                                                <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem; cursor: pointer;" onclick="toggleAugCategory('rotation')">
+                                                    <span id="rotation-arrow" style="font-size: 0.75rem; transition: transform 0.2s;">▶</span>
+                                                    <label style="display: flex; align-items: center; gap: 0.5rem; font-weight: 600; font-size: 0.9rem; color: #1e40af; cursor: pointer; margin: 0;">
+                                                        <input type="checkbox" data-aug-category="rotation" onchange="toggleAllInCategory('rotation')" onclick="event.stopPropagation()">
+                                                        <span>🔄 旋转/缩放 (4种)</span>
+                                                    </label>
+                                                </div>
+                                                <div id="rotation-methods" style="display: none; grid-template-columns: repeat(2, 1fr); gap: 0.25rem; margin-left: 1.5rem; font-size: 0.8rem;">
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="rotation" data-method="rotate_5" onchange="updateCustomAugmentationPreview()">
+                                                        <span>旋转+5度</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="rotation" data-method="rotate_minus5" onchange="updateCustomAugmentationPreview()">
+                                                        <span>旋转-5度</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="rotation" data-method="slight_zoom" onchange="updateCustomAugmentationPreview()">
+                                                        <span>轻微放大(1.1x)</span>
+                                                    </label>
+                                                    <label style="display: flex; align-items: center; gap: 0.3rem;">
+                                                        <input type="checkbox" data-aug="rotation" data-method="slight_shrink" onchange="updateCustomAugmentationPreview()">
+                                                        <span>轻微缩小(0.9x)</span>
+                                                    </label>
+                                                </div>
+                                            </div>
+                                            
+                                        </div>
+                                        
+                                        <div style="margin-top: 0.75rem; padding: 0.5rem; background: #f0f9ff; border-radius: 0.375rem; font-size: 0.8rem; color: #0369a1;">
+                                            💡 提示：可以展开每个类别，单独勾选需要的具体增强方法。勾选后实时计算样本数。
+                                        </div>
+                                    </div>
+                                    
+                                    <div id="augPreview" style="margin-top: 1rem; padding: 0.75rem; background: white; border-radius: 0.375rem; font-size: 0.875rem;">
+                                        <!-- 预览信息 -->
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- LoRA配置 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>5️⃣ LoRA配置（推荐）</h4>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="useLora" checked>
+                                    <span>使用LoRA低秩适配</span>
+                                </label>
+                                <div id="loraOptions" class="lora-options">
+                                    <div class="param-grid">
+                                        <div class="param-item">
+                                            <label for="loraR">Rank (r)</label>
+                                            <input type="number" id="loraR" value="16" min="1" max="128">
+                                            <small>推荐：16（平衡），32（强微调）</small>
+                                        </div>
+                                        <div class="param-item">
+                                            <label for="loraAlpha">Alpha</label>
+                                            <input type="number" id="loraAlpha" value="32" min="1" max="128">
+                                            <small>推荐：r的2倍（r=16时用32）</small>
+                                        </div>
+                                    </div>
+                                    <small>LoRA可以大幅减少训练参数和显存占用</small>
+                                </div>
+                            </div>
+
+                            <!-- 类别权重配置 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>6️⃣ 类别权重配置（高级）</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                                        <span style="font-size: 1.25rem;">⚖️</span>
+                                        <div style="font-size: 0.875rem; color: #475569;">
+                                            <strong>什么是类别权重？</strong>
+                                            <p style="margin: 0.5rem 0 0 0;">为不同类别的图标设置不同的训练权重，让模型更关注特定类别。适用于需要精准识别某个图标的场景。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="useClassWeights" onchange="toggleClassWeightsOptions()">
+                                    <span>启用类别权重</span>
+                                </label>
+                                
+                                <div id="classWeightsOptions" style="display: none; margin-top: 1rem; padding: 1rem; background: #fef2f2; border-radius: 0.5rem; border: 1px solid #fecaca;">
+                                    <div id="classWeightsList" style="max-height: 300px; overflow-y: auto;">
+                                        <div style="display: grid; grid-template-columns: 2fr 1fr auto; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; font-weight: 600; font-size: 0.875rem; color: #6b7280;">
+                                            <span>类别名称</span>
+                                            <span>权重</span>
+                                            <span></span>
+                                        </div>
+                                        <!-- 类别权重项将动态添加 -->
+                                    </div>
+                                    <button type="button" onclick="addClassWeightRow()" style="margin-top: 0.75rem; padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 0.375rem; cursor: pointer; font-size: 0.875rem;">
+                                        ➕ 添加类别
+                                    </button>
+                                    <small style="display: block; margin-top: 0.75rem; color: #6b7280;">
+                                        💡 提示：权重越高，模型越关注该类别。默认权重为1.0，推荐范围：0.1-10.0
+                                    </small>
+                                </div>
+                            </div>
+
+                            <!-- 早停配置 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>6️⃣ 早停配置（推荐）</h4>
+                                <div style="background: #f8fafc; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                                        <span style="font-size: 1.25rem;">🎯</span>
+                                        <div style="font-size: 0.875rem; color: #475569;">
+                                            <strong>什么是早停？</strong>
+                                            <p style="margin: 0.5rem 0 0 0;">当训练Loss达到目标值时自动停止训练，防止过拟合，节省时间。推荐设置目标Loss为0.15-0.25。</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="useEarlyStopping" onchange="toggleEarlyStoppingOptions()">
+                                    <span>启用早停（防止过拟合）</span>
+                                </label>
+                                
+                                <div id="earlyStoppingOptions" style="display: none; margin-top: 1rem; padding: 1rem; background: #fef3c7; border-radius: 0.5rem; border: 1px solid #fbbf24;">
+                                    <div class="param-grid">
+                                        <div class="param-item">
+                                            <label for="targetLoss">目标Loss</label>
+                                            <input type="number" id="targetLoss" value="0.20" min="0.01" max="1.0" step="0.01">
+                                            <small>推荐：0.15-0.25（图标识别最佳）</small>
+                                        </div>
+                                        <div class="param-item">
+                                            <label for="earlyStopPatience">容忍轮数 (Patience)</label>
+                                            <input type="number" id="earlyStopPatience" value="3" min="1" max="10">
+                                            <small>连续N轮达到目标才停止（推荐3）</small>
+                                        </div>
+                                    </div>
+                                    <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(251, 191, 36, 0.1); border-radius: 0.375rem; font-size: 0.85rem; color: #92400e;">
+                                        💡 <strong>示例：</strong>目标Loss=0.20，容忍轮数=3<br>
+                                        当连续3轮的Loss都≤0.20时，训练自动停止，保存最佳模型。
+                                    </div>
+                                </div>
+                                
+                                <!-- 自适应学习率 -->
+                                <div style="margin-top: 1rem;">
+                                    <label class="checkbox-label">
+                                        <input type="checkbox" id="useReduceLR" onchange="toggleReduceLROptions()">
+                                        <span>启用自适应学习率（防止轮数不足）</span>
+                                    </label>
+                                    
+                                    <div id="reduceLROptions" style="display: none; margin-top: 1rem; padding: 1rem; background: #dbeafe; border-radius: 0.5rem; border: 1px solid #60a5fa;">
+                                        <div style="background: rgba(59, 130, 246, 0.1); padding: 0.75rem; border-radius: 0.375rem; margin-bottom: 1rem; font-size: 0.875rem; color: #1e40af;">
+                                            💡 <strong>自适应学习率（ReduceLROnPlateau）：</strong>当Loss停滞不降时，自动降低学习率，突破瓶颈，提高达标概率。
+                                        </div>
+                                        <div class="param-grid">
+                                            <div class="param-item">
+                                                <label for="reduceLRPatience">停滞轮数</label>
+                                                <input type="number" id="reduceLRPatience" value="5" min="2" max="10">
+                                                <small>N轮Loss不降就降低学习率（推荐5）</small>
+                                            </div>
+                                            <div class="param-item">
+                                                <label for="reduceLRFactor">衰减因子</label>
+                                                <select id="reduceLRFactor">
+                                                    <option value="0.1">0.1（减到1/10）</option>
+                                                    <option value="0.2">0.2（减到1/5）</option>
+                                                    <option value="0.5" selected>0.5（减半）推荐</option>
+                                                    <option value="0.7">0.7（减到70%）</option>
+                                                </select>
+                                                <small>学习率衰减幅度</small>
+                                            </div>
+                                            <div class="param-item">
+                                                <label for="reduceLRMinLR">最小学习率</label>
+                                                <select id="reduceLRMinLR">
+                                                    <option value="1e-9">1e-9（极小）</option>
+                                                    <option value="1e-8" selected>1e-8（推荐）</option>
+                                                    <option value="1e-7">1e-7（较小）</option>
+                                                </select>
+                                                <small>学习率下限</small>
+                                            </div>
+                                        </div>
+                                        <div style="margin-top: 0.75rem; padding: 0.75rem; background: rgba(59, 130, 246, 0.1); border-radius: 0.375rem; font-size: 0.85rem; color: #1e3a8a;">
+                                            📊 <strong>示例：</strong>停滞轮数=5，衰减因子=0.5<br>
+                                            如果连续5轮Loss下降<0.01，学习率自动减半（1e-6→5e-7），继续训练直到达标。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- 高级训练参数 -->
+                            <div style="margin-top: 1rem;">
+                                <h4>7️⃣ 高级训练参数（可选）</h4>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="useAdvancedParams" onchange="toggleAdvancedParamsOptions()">
+                                    <span>显示高级参数</span>
+                                </label>
+                                
+                                <div id="advancedParamsOptions" style="display: none; margin-top: 1rem;">
+                                    <div class="param-grid">
+                                        <div class="param-item">
+                                            <label for="warmupSteps">预热步数 (Warmup Steps)</label>
+                                            <input type="number" id="warmupSteps" value="100" min="0" max="1000">
+                                            <small>学习率逐步提升的步数</small>
+                                        </div>
+                                        <div class="param-item">
+                                            <label for="weightDecay">权重衰减 (Weight Decay)</label>
+                                            <input type="text" id="weightDecay" value="0.01">
+                                            <small>防止过拟合，推荐0.01-0.1</small>
+                                        </div>
+                                        <div class="param-item">
+                                            <label for="gradientAccumulationSteps">梯度累积步数</label>
+                                            <input type="number" id="gradientAccumulationSteps" value="1" min="1" max="32">
+                                            <small>变相增大批次大小</small>
+                                        </div>
+                                        <div class="param-item">
+                                            <label for="maxGradNorm">梯度裁剪 (Max Grad Norm)</label>
+                                            <input type="text" id="maxGradNorm" value="1.0">
+                                            <small>防止梯度爆炸</small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 开始训练 -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-large" id="trainBtn">
+                                🚀 开始训练
+                            </button>
+                            <button type="button" class="btn btn-success btn-large" id="finishBtn" style="display:none; margin-left: 1rem;" onclick="finishTraining()">
+                                ✅ 完成训练
+                            </button>
+                            <button type="button" class="btn btn-danger btn-large" id="stopBtn" style="display:none; margin-left: 1rem;" onclick="stopTraining()">
+                                🛑 停止训练
+                            </button>
+                        </div>
+                    </form>
+
+                    <!-- 训练进度 -->
+                    <div id="progressContainer" class="progress-container">
+                        <h4>训练进度</h4>
+                        <div class="progress-bar-wrapper">
+                            <div class="progress-bar" id="progressBar" style="width: 0%">0%</div>
+                        </div>
+                        
+                        <!-- 详细进度信息（倒计时） -->
+                        <div id="trainingDetails" style="display: none; margin-top: 1rem; padding: 1rem; background: #F3F4F6; border-radius: 0.5rem; font-family: monospace;">
+                            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; font-size: 0.9rem;">
+                                <div>
+                                    <span style="color: #6B7280;">当前轮次:</span>
+                                    <span id="currentEpoch" style="color: #1F2937; font-weight: bold; margin-left: 0.5rem;">0</span>
+                                    <span style="color: #6B7280;"> / </span>
+                                    <span id="totalEpochs" style="color: #1F2937; font-weight: bold;">0</span>
+                                </div>
+                                <div>
+                                    <span style="color: #6B7280;">当前损失:</span>
+                                    <span id="currentLoss" style="color: #DC2626; font-weight: bold; margin-left: 0.5rem;">--</span>
+                                </div>
+                                <div>
+                                    <span style="color: #6B7280;">⏱️ 已用时间:</span>
+                                    <span id="elapsedTime" style="color: #059669; font-weight: bold; margin-left: 0.5rem;">00:00:00</span>
+                                </div>
+                                <div>
+                                    <span style="color: #6B7280;">⏳ 预计剩余:</span>
+                                    <span id="remainingTime" style="color: #F59E0B; font-weight: bold; margin-left: 0.5rem;">计算中...</span>
+                                </div>
+                                <div>
+                                    <span style="color: #6B7280;">本轮耗时:</span>
+                                    <span id="epochTime" style="color: #6B7280; font-weight: bold; margin-left: 0.5rem;">--</span>
+                                </div>
+                                <div>
+                                    <span style="color: #6B7280;">平均每轮:</span>
+                                    <span id="avgEpochTime" style="color: #6B7280; font-weight: bold; margin-left: 0.5rem;">--</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 训练日志 -->
+                    <div id="trainLog" class="train-log" style="display:none;">
+                        <div class="log-header">
+                            <h4>📋 训练日志</h4>
+                            <button class="btn btn-sm" onclick="clearLog()">清空</button>
+                        </div>
+                        <div class="log-content" id="logContent"></div>
+                    </div>
+
+                    <!-- 已训练模型 -->
+                    <div class="models-section" style="margin-top: 2rem;">
+                        <h4>📦 已训练模型</h4>
+                        <div class="models-list" id="modelsList">
+                            <div class="empty-state">暂无训练好的模型</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/train.js"></script>
+    <script src="js/train_augmentation.js"></script>
+</body>
+</html>

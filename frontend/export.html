@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>数据导出 - 朱笔 Zhubi</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <a href="index.html">
+                    <h1>朱笔 Zhubi</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html">项目管理</a>
+                <a href="annotate_enhanced.html">图片标注</a>
+                <a href="export.html" class="active">数据导出</a>
+                <a href="train.html">模型训练</a>
+                <a href="compare_omniparser.html">OmniParser对比</a>
+            </nav>
+        </header>
+
+        <!-- 面包屑导航 -->
+        <nav class="breadcrumb">
+            <div class="breadcrumb-item">
+                <a href="index.html">🏠 首页</a>
+            </div>
+            <span class="breadcrumb-separator">/</span>
+            <div class="breadcrumb-item active">
+                <span>📤 数据导出</span>
+            </div>
+        </nav>
+
+        <main class="main-content">
+            <div class="export-container">
+                <div class="page-header">
+                    <h2>📤 导出数据集</h2>
+                    <p>选择项目和导出格式，生成训练数据集</p>
+                </div>
+                
+                <!-- 说明提示 -->
+                <div style="background: #f0f9ff; border-left: 4px solid #0ea5e9; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1.5rem;">
+                    <div style="display: flex; align-items: start; gap: 0.75rem;">
+                        <span style="font-size: 1.25rem;">💡</span>
+                        <div style="flex: 1;">
+                            <div style="font-weight: 600; color: #0c4a6e; margin-bottom: 0.25rem;">关于数据导出</div>
+                            <div style="font-size: 0.875rem; color: #075985; line-height: 1.6;">
+                                <strong>训练时无需手动导出：</strong>前往"模型训练"页面，点击"开始训练"，系统会自动准备训练数据。<br>
+                                <strong>手动导出用途：</strong>下载数据集ZIP文件，用于备份、分享或在其他平台训练。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="export-form-container">
+                    <form id="exportForm" onsubmit="handleExport(event)">
+                        <!-- 项目选择 -->
+                        <div class="form-section">
+                            <h3>1️⃣ 选择项目</h3>
+                            <div class="form-group">
+                                <select id="projectSelect" required onchange="updateProjectStats()">
+                                    <option value="">-- 请选择项目 --</option>
+                                </select>
+                            </div>
+                            <div id="projectStats" class="project-stats" style="display:none;">
+                                <!-- 项目统计信息 -->
+                            </div>
+                        </div>
+
+                        <!-- 导出格式 -->
+                        <div class="form-section">
+                            <h3>2️⃣ 导出格式</h3>
+                            <div class="format-grid">
+                                <label class="format-card">
+                                    <input type="radio" name="format" value="coco" checked>
+                                    <div class="format-content">
+                                        <h4>COCO</h4>
+                                        <p>通用目标检测格式</p>
+                                        <small>适用于大多数深度学习框架</small>
+                                    </div>
+                                </label>
+                                <label class="format-card">
+                                    <input type="radio" name="format" value="yolo">
+                                    <div class="format-content">
+                                        <h4>YOLO</h4>
+                                        <p>YOLOv8/v11格式</p>
+                                        <small>Ultralytics YOLO训练</small>
+                                    </div>
+                                </label>
+                                <label class="format-card recommended">
+                                    <input type="radio" name="format" value="florence2">
+                                    <div class="format-content">
+                                        <h4>Florence-2 ⭐</h4>
+                                        <p>Florence-2训练格式</p>
+                                        <small>本项目推荐格式</small>
+                                    </div>
+                                </label>
+                                <label class="format-card">
+                                    <input type="radio" name="format" value="voc">
+                                    <div class="format-content">
+                                        <h4>Pascal VOC</h4>
+                                        <p>经典XML格式</p>
+                                        <small>传统目标检测格式</small>
+                                    </div>
+                                </label>
+                                <label class="format-card">
+                                    <input type="radio" name="format" value="csv">
+                                    <div class="format-content">
+                                        <h4>CSV</h4>
+                                        <p>表格格式</p>
+                                        <small>便于数据分析</small>
+                                    </div>
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- 数据集划分 -->
+                        <div class="form-section">
+                            <h3>3️⃣ 数据集划分</h3>
+                            <div class="split-config">
+                                <div class="split-item">
+                                    <label>训练集 (Train)</label>
+                                    <input type="number" id="trainSplit" value="70" min="0" max="100" 
+                                           onchange="updateSplitTotal()">
+                                    <span>%</span>
+                                </div>
+                                <div class="split-item">
+                                    <label>验证集 (Val)</label>
+                                    <input type="number" id="valSplit" value="20" min="0" max="100" 
+                                           onchange="updateSplitTotal()">
+                                    <span>%</span>
+                                </div>
+                                <div class="split-item">
+                                    <label>测试集 (Test)</label>
+                                    <input type="number" id="testSplit" value="10" min="0" max="100" 
+                                           onchange="updateSplitTotal()">
+                                    <span>%</span>
+                                </div>
+                            </div>
+                            <div id="splitWarning" class="warning-message" style="display:none;">
+                                ⚠️ 三者之和必须等于100%
+                            </div>
+                        </div>
+
+                        <!-- 数据增强（可选） -->
+                        <div class="form-section">
+                            <h3>4️⃣ 数据增强（可选）</h3>
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="augmentation">
+                                <span>启用数据增强</span>
+                            </label>
+                            <div id="augmentationOptions" class="augmentation-options" style="display:none;">
+                                <small>包含：旋转、缩放、亮度调整、对比度调整、翻转</small>
+                            </div>
+                        </div>
+
+                        <!-- 负样本自动标注（高级） -->
+                        <div class="form-section">
+                            <h3>5️⃣ 负样本标注（高级功能）</h3>
+                            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 1rem; border-radius: 0.5rem; margin-bottom: 1rem;">
+                                <div style="display: flex; align-items: start; gap: 0.75rem;">
+                                    <span style="font-size: 1.25rem;">⚠️</span>
+                                    <div style="flex: 1;">
+                                        <div style="font-weight: 600; color: #92400e; margin-bottom: 0.25rem;">什么是负样本？</div>
+                                        <div style="font-size: 0.875rem; color: #78350f; line-height: 1.6;">
+                                            负样本是指"非目标"的样本，用于教会模型区分目标和背景。例如训练识别"vla浏览器"图标时，可以添加其他通用图标作为负样本，让模型学会不将它们识别为"vla浏览器"。
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="autoNegativeSamples" onchange="toggleNegativeSamplesOptions()">
+                                <span>自动添加负样本</span>
+                            </label>
+                            
+                            <div id="negativeSamplesOptions" style="display:none; margin-top: 1rem; padding: 1rem; background: #fef2f2; border-radius: 0.5rem; border: 1px solid #fecaca;">
+                                <div style="margin-bottom: 1rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #991b1b;">
+                                        负样本类别名称
+                                    </label>
+                                    <input type="text" id="negativeSampleCategory" value="通用图标" 
+                                           placeholder="例如: 通用图标, 其他图标, 背景" 
+                                           style="width: 100%; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 0.375rem;">
+                                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">
+                                        自动检测到的通用图标将使用这个类别名称
+                                    </small>
+                                </div>
+                                
+                                <div style="margin-bottom: 1rem;">
+                                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 600; color: #991b1b;">
+                                        检测置信度阈值
+                                    </label>
+                                    <input type="range" id="negativeConfidenceThreshold" min="0.1" max="0.9" step="0.05" value="0.3"
+                                           oninput="document.getElementById('negativeThresholdValue').textContent = this.value"
+                                           style="width: 100%;">
+                                    <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: #6b7280;">
+                                        <span>0.1 (宽松)</span>
+                                        <span id="negativeThresholdValue" style="font-weight: 600; color: #991b1b;">0.3</span>
+                                        <span>0.9 (严格)</span>
+                                    </div>
+                                    <small style="color: #6b7280; display: block; margin-top: 0.25rem;">
+                                        置信度越低，检测到的负样本越多
+                                    </small>
+                                </div>
+                                
+                                <div style="padding: 0.75rem; background: white; border-radius: 0.375rem; font-size: 0.875rem;">
+                                    <strong style="color: #1f2937;">工作原理:</strong>
+                                    <ol style="margin: 0.5rem 0 0 1.25rem; color: #6b7280; line-height: 1.8;">
+                                        <li>使用基础YOLO模型检测图片中的所有图标</li>
+                                        <li>过滤掉已标注的目标图标</li>
+                                        <li>将剩余的通用图标自动标注为负样本</li>
+                                        <li>模型训练时会学习不将这些识别为目标</li>
+                                    </ol>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 导出按钮 -->
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary btn-large" id="exportBtn">
+                                📦 导出数据集
+                            </button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- 导出进度 -->
+                <div id="exportProgress" class="export-progress" style="display:none;">
+                    <h3>⏳ 正在导出...</h3>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progressFill"></div>
+                    </div>
+                    <p id="progressText">准备导出...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/export.js"></script>
+</body>
+</html>
+

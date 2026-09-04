@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能标注 - 朱笔 Zhubi</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="css/annotate_enhanced.css">
+</head>
+<body>
+    <div class="container">
+        <!-- 顶部导航 -->
+        <header class="header">
+            <div class="logo">
+                <a href="index.html">
+                    <h1>朱笔 Zhubi</h1>
+                </a>
+            </div>
+            <nav class="nav">
+                <a href="index.html">项目管理</a>
+                <a href="annotate_enhanced.html" class="active">图片标注</a>
+                <a href="export.html">数据导出</a>
+                <a href="train.html">模型训练</a>
+                <a href="compare_omniparser.html">OmniParser对比</a>
+            </nav>
+        </header>
+
+        <!-- 面包屑导航 -->
+        <nav class="breadcrumb">
+            <div class="breadcrumb-item">
+                <a href="index.html">🏠 首页</a>
+            </div>
+            <span class="breadcrumb-separator">/</span>
+            <div class="breadcrumb-item active">
+                <span id="breadcrumbProject">图片标注</span>
+            </div>
+        </nav>
+
+        <main class="main-content annotate-enhanced-page">
+            <!-- 左侧：图片列表 + 过滤器 -->
+            <div class="sidebar">
+                <div class="sidebar-header">
+                    <h3 id="projectTitle">项目名称</h3>
+                    <div class="progress-bar-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progressBar" style="width: 0%"></div>
+                        </div>
+                        <span id="progressText">0 / 0</span>
+                    </div>
+                </div>
+                
+                <!-- 过滤器 -->
+                <div class="filter-section">
+                    <select id="filterStatus" onchange="filterImages()">
+                        <option value="all">全部图片</option>
+                        <option value="annotated">已标注</option>
+                        <option value="unannotated">未标注</option>
+                        <option value="skipped">已跳过</option>
+                    </select>
+                    <button class="btn btn-sm btn-block" onclick="document.getElementById('fileInput').click()">
+                        ⬆️ 上传图片
+                    </button>
+                    <input type="file" id="fileInput" multiple accept="image/*" style="display:none;" onchange="handleUpload(event)">
+                </div>
+
+                <!-- 图片列表 -->
+                <div class="image-list" id="imageList">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+
+            <!-- 中间：标注画布区域 -->
+            <div class="canvas-area">
+                <!-- 顶部工具栏 -->
+                <div class="toolbar-top">
+                    <div class="toolbar-group">
+                        <button class="tool-btn" onclick="setTool('select')" id="toolSelect" title="选择 (V)">
+                            <span>🖱️</span> 选择
+                        </button>
+                        <button class="tool-btn active" onclick="setTool('rect')" id="toolRect" title="矩形 (R)">
+                            <span>▭</span> 矩形
+                        </button>
+                    </div>
+                    
+                    <div class="toolbar-group">
+                        <button class="tool-btn" onclick="undo()" title="撤销 (Ctrl+Z)">
+                            ↶ 撤销
+                        </button>
+                        <button class="tool-btn" onclick="redo()" title="重做 (Ctrl+Y)">
+                            ↷ 重做
+                        </button>
+                        <button class="tool-btn" onclick="deleteSelected()" title="删除 (Del)">
+                            🗑️ 删除
+                        </button>
+                        <button class="tool-btn" onclick="duplicateSelected()" title="复制 (Ctrl+D)">
+                            📋 复制
+                        </button>
+                    </div>
+
+                    <div class="toolbar-group">
+                        <button class="tool-btn" onclick="zoomIn()" title="放大 (+)">
+                            🔍+ 放大
+                        </button>
+                        <button class="tool-btn" onclick="zoomOut()" title="缩小 (-)">
+                            🔍- 缩小
+                        </button>
+                        <button class="tool-btn" onclick="resetZoom()" title="重置 (0)">
+                            ⟲ 重置
+                        </button>
+                        <span class="zoom-level" id="zoomLevel">100%</span>
+                    </div>
+
+                    <div class="toolbar-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showGrid" onchange="toggleGrid()">
+                            <span>网格</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="showLabels" checked onchange="redraw()">
+                            <span>标签</span>
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" id="snapToGrid" onchange="toggleSnap()">
+                            <span>对齐</span>
+                        </label>
+                        
+                        <!-- 分隔符 -->
+                        <div style="width: 1px; height: 24px; background: #e5e7eb; margin: 0 0.75rem;"></div>
+                        
+                        <!-- 功能按钮 -->
+                        <button class="btn btn-sm" onclick="toggleFullscreen()" title="全屏 (F)" style="margin-right: 0.5rem;">
+                            🔲 全屏
+                        </button>
+                        <button class="btn btn-sm" onclick="showShortcuts()" title="快捷键 (?)">
+                            ⌨️ 快捷键
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 图片信息栏 -->
+                <div class="image-info-bar">
+                    <div class="info-left">
+                        <span id="currentImageName">未选择图片</span>
+                        <span id="currentImageSize" class="text-secondary"></span>
+                        <span id="currentImageIndex" class="text-secondary"></span>
+                    </div>
+                    <div class="info-right">
+                        <button class="btn btn-sm" onclick="skipImage()" title="跳过 (Space)">
+                            ⏭️ 跳过
+                        </button>
+                        <button class="btn btn-sm" onclick="previousImage()" title="上一张 (A)">
+                            ⬅️
+                        </button>
+                        <button class="btn btn-sm" onclick="nextImage()" title="下一张 (D)">
+                            ➡️
+                        </button>
+                        <button class="btn btn-sm btn-success" onclick="saveAndNext()" title="保存并下一张 (Ctrl+Enter)">
+                            💾 保存并继续
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 画布容器 -->
+                <div class="canvas-container" id="canvasContainer">
+                    <canvas id="annotationCanvas"></canvas>
+                    <div class="canvas-overlay" id="canvasOverlay">
+                        <!-- 缩放指示器 -->
+                        <div class="zoom-indicator" id="zoomIndicator" style="display:none;">
+                            <span id="zoomText">100%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 底部状态栏 -->
+                <div class="status-bar">
+                    <div class="status-left">
+                        <span id="statusText">准备就绪</span>
+                        <span id="mousePos" class="text-secondary"></span>
+                    </div>
+                    <div class="status-right">
+                        <span id="selectionInfo"></span>
+                        <span id="bboxCount">标注数: 0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 右侧：标注管理面板 -->
+            <div class="control-panel">
+                <!-- 标注列表 -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h3>📦 标注列表</h3>
+                        <div class="panel-actions">
+                            <button class="icon-btn" onclick="clearAllAnnotations()" title="清空全部">
+                                🗑️
+                            </button>
+                            <button class="icon-btn" onclick="exportAnnotations()" title="导出">
+                                📥
+                            </button>
+                        </div>
+                    </div>
+                    <div class="bbox-list" id="bboxList">
+                        <div class="empty-state">暂无标注</div>
+                    </div>
+                </div>
+
+                <!-- 类别面板 -->
+                <div class="panel-section">
+                    <div class="panel-header">
+                        <h3>🏷️ 类别</h3>
+                        <button class="icon-btn" onclick="showCategoryManager()" title="管理类别">
+                            ⚙️
+                        </button>
+                    </div>
+                    <div class="category-list" id="categoryList">
+                        <!-- 动态生成 -->
+                    </div>
+                    <div class="category-hint">
+                        提示：数字键 1-9 快速选择类别
+                    </div>
+                </div>
+
+                <!-- 属性面板 -->
+                <div class="panel-section" id="propertiesPanel" style="display:none;">
+                    <h3>⚙️ 属性</h3>
+                    <div class="properties-form">
+                        <div class="form-group">
+                            <label>X</label>
+                            <input type="number" id="propX" onchange="updateSelectedBbox()">
+                        </div>
+                        <div class="form-group">
+                            <label>Y</label>
+                            <input type="number" id="propY" onchange="updateSelectedBbox()">
+                        </div>
+                        <div class="form-group">
+                            <label>宽度</label>
+                            <input type="number" id="propWidth" onchange="updateSelectedBbox()">
+                        </div>
+                        <div class="form-group">
+                            <label>高度</label>
+                            <input type="number" id="propHeight" onchange="updateSelectedBbox()">
+                        </div>
+                        <div class="form-group">
+                            <label>类别</label>
+                            <select id="propCategory" onchange="updateSelectedBbox()">
+                                <!-- 动态生成 -->
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="checkbox-label">
+                                <input type="checkbox" id="propLocked" onchange="updateSelectedBbox()">
+                                <span>锁定</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统计信息 -->
+                <div class="panel-section">
+                    <h3>📊 统计</h3>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalImages">0</div>
+                            <div class="stat-label">总图片</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="annotatedImages">0</div>
+                            <div class="stat-label">已标注</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="totalBoxes">0</div>
+                            <div class="stat-label">总标注框</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="currentBoxes">0</div>
+                            <div class="stat-label">当前图片</div>
+                        </div>
+                    </div>
+                    <button class="btn btn-sm btn-block" onclick="showStatistics()" style="margin-top: 0.5rem;">
+                        查看详细统计
+                    </button>
+                </div>
+
+                <!-- 历史记录 -->
+                <div class="panel-section">
+                    <h3>📝 历史</h3>
+                    <div class="history-list" id="historyList">
+                        <div class="empty-state">暂无历史记录</div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- 快捷键帮助弹窗 -->
+    <div class="modal" id="shortcutsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>⌨️ 快捷键</h2>
+                <button class="close-btn" onclick="hideShortcuts()">&times;</button>
+            </div>
+            <div class="shortcuts-grid">
+                <div class="shortcut-group">
+                    <h4>导航</h4>
+                    <div class="shortcut-item">
+                        <kbd>A</kbd> / <kbd>←</kbd>
+                        <span>上一张</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>D</kbd> / <kbd>→</kbd>
+                        <span>下一张</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Space</kbd>
+                        <span>跳过当前图片</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>Enter</kbd>
+                        <span>保存并继续</span>
+                    </div>
+                </div>
+                
+                <div class="shortcut-group">
+                    <h4>工具</h4>
+                    <div class="shortcut-item">
+                        <kbd>V</kbd>
+                        <span>选择工具</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>R</kbd>
+                        <span>矩形工具</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>1-9</kbd>
+                        <span>快速选择类别</span>
+                    </div>
+                </div>
+                
+                <div class="shortcut-group">
+                    <h4>编辑</h4>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>Z</kbd>
+                        <span>撤销</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>Y</kbd>
+                        <span>重做</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Ctrl</kbd> + <kbd>D</kbd>
+                        <span>复制</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>Del</kbd> / <kbd>Backspace</kbd>
+                        <span>删除</span>
+                    </div>
+                </div>
+                
+                <div class="shortcut-group">
+                    <h4>视图</h4>
+                    <div class="shortcut-item">
+                        <kbd>+</kbd> / <kbd>=</kbd>
+                        <span>放大</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>-</kbd>
+                        <span>缩小</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>0</kbd>
+                        <span>重置缩放</span>
+                    </div>
+                    <div class="shortcut-item">
+                        <kbd>F</kbd>
+                        <span>全屏</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 统计弹窗 -->
+    <div class="modal" id="statisticsModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>📊 详细统计</h2>
+                <button class="close-btn" onclick="hideStatistics()">&times;</button>
+            </div>
+            <div id="statisticsContent">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+    </div>
+
+    <script src="js/annotator_enhanced.js?v=20260204-4"></script>
+</body>
+</html>
+

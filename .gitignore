@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+env/
+
+# Local data, models, exports and logs (keep the directory skeleton)
+data/projects/*
+data/models/*
+data/exports/*
+data/logs/*
+!data/*/.gitkeep
+runs/
+experiment_results/
+*.pt
+*.pth
+*.safetensors
+*.log
+
+# Editors / OS
+.idea/
+.vscode/
+.DS_Store
+.claude/settings.local.json
+.claude/worktrees/
+
+# Secrets
+.env
+.env.*
+!.env.example
